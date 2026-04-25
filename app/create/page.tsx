@@ -1,0 +1,167 @@
+'use client'
+
+import { useState } from 'react'
+import { supabase } from '@/lib/supabase'
+
+const categories = [
+  { value: 'house', label: '🏠 บ้าน / คอนโด / ห้อง' },
+  { value: 'car', label: '🚗 รถยนต์ / มอเตอร์ไซค์' },
+  { value: 'equipment', label: '🔧 อุปกรณ์ / เครื่องมือ' },
+  { value: 'fashion', label: '👗 เสื้อผ้า / แฟชั่น' },
+]
+
+export default function CreateListing() {
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    category: '',
+    price_per_day: '',
+    location: '',
+  })
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleSubmit = async () => {
+    if (!form.title || !form.category || !form.price_per_day) {
+      setMessage('❌ กรุณากรอกข้อมูลที่จำเป็นให้ครบ')
+      return
+    }
+    setLoading(true)
+    setMessage('')
+
+    const { error } = await supabase.from('listings').insert([{
+      title: form.title,
+      description: form.description,
+      category: form.category,
+      price_per_day: Number(form.price_per_day),
+      location: form.location,
+      is_available: true,
+    }])
+
+    if (error) setMessage('❌ ' + error.message)
+    else {
+      setMessage('✅ ลงประกาศสำเร็จแล้ว!')
+      setForm({ title: '', description: '', category: '', price_per_day: '', location: '' })
+    }
+    setLoading(false)
+  }
+
+  return (
+    <main className="min-h-screen bg-gray-50">
+
+      {/* Navbar */}
+      <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
+        <a href="/" className="text-2xl font-bold text-blue-600">RentHub</a>
+        <a href="/auth" className="text-gray-600 hover:text-blue-600 text-sm">เข้าสู่ระบบ</a>
+      </nav>
+
+      <div className="max-w-2xl mx-auto px-6 py-10">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">ลงประกาศเช่า</h2>
+        <p className="text-gray-400 mb-8">กรอกข้อมูลสินค้าที่ต้องการให้เช่า</p>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6">
+
+          {/* ชื่อประกาศ */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">
+              ชื่อประกาศ <span className="text-red-400">*</span>
+            </label>
+            <input
+              name="title"
+              value={form.title}
+              onChange={handleChange}
+              placeholder="เช่น คอนโดใจกลางเมือง, Honda Civic 2022"
+              className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
+            />
+          </div>
+
+          {/* หมวดหมู่ */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">
+              หมวดหมู่ <span className="text-red-400">*</span>
+            </label>
+            <select
+              name="category"
+              value={form.category}
+              onChange={handleChange}
+              className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-400">
+              <option value="">เลือกหมวดหมู่</option>
+              {categories.map((cat) => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* รายละเอียด */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">รายละเอียด</label>
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              rows={4}
+              placeholder="อธิบายรายละเอียดสินค้า สภาพ เงื่อนไขการเช่า..."
+              className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-400 resize-none"
+            />
+          </div>
+
+          {/* ราคาและสถานที่ */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">
+                ราคา / วัน (฿) <span className="text-red-400">*</span>
+              </label>
+              <input
+                name="price_per_day"
+                type="number"
+                value={form.price_per_day}
+                onChange={handleChange}
+                placeholder="500"
+                className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">สถานที่</label>
+              <input
+                name="location"
+                value={form.location}
+                onChange={handleChange}
+                placeholder="กรุงเทพฯ, เชียงใหม่..."
+                className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
+              />
+            </div>
+          </div>
+
+          {/* อัปโหลดรูป (placeholder) */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">รูปภาพ</label>
+            <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center hover:border-blue-300 cursor-pointer transition-all">
+              <p className="text-4xl mb-2">📷</p>
+              <p className="text-sm text-gray-400">คลิกเพื่ออัปโหลดรูปภาพ</p>
+              <p className="text-xs text-gray-300 mt-1">JPG, PNG ขนาดไม่เกิน 5MB</p>
+            </div>
+          </div>
+
+          {message && (
+            <p className="text-sm text-center py-3 px-4 bg-gray-50 rounded-lg">{message}</p>
+          )}
+
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-all">
+            {loading ? 'กำลังบันทึก...' : 'ลงประกาศ'}
+          </button>
+
+          <a href="/" className="block text-center text-sm text-gray-400 hover:text-blue-500">
+            ← กลับหน้าหลัก
+          </a>
+        </div>
+      </div>
+    </main>
+  )
+}
