@@ -10,6 +10,8 @@ const categories = [
   { value: 'fashion', label: '👗 เสื้อผ้า / แฟชั่น' },
 ]
 
+const inputClass = "w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-400 text-gray-800 bg-white"
+
 export default function CreateListing() {
   const [form, setForm] = useState({
     title: '',
@@ -33,6 +35,8 @@ export default function CreateListing() {
     setLoading(true)
     setMessage('')
 
+    const { data: { user } } = await supabase.auth.getUser()
+
     const { error } = await supabase.from('listings').insert([{
       title: form.title,
       description: form.description,
@@ -40,23 +44,22 @@ export default function CreateListing() {
       price_per_day: Number(form.price_per_day),
       location: form.location,
       is_available: true,
+      owner_id: user?.id,
     }])
 
     if (error) setMessage('❌ ' + error.message)
     else {
       setMessage('✅ ลงประกาศสำเร็จแล้ว!')
-      setForm({ title: '', description: '', category: '', price_per_day: '', location: '' })
+      setTimeout(() => window.location.href = '/dashboard', 1500)
     }
     setLoading(false)
   }
 
   return (
     <main className="min-h-screen bg-gray-50">
-
-      {/* Navbar */}
       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
         <a href="/" className="text-2xl font-bold text-blue-600">RentHub</a>
-        <a href="/auth" className="text-gray-600 hover:text-blue-600 text-sm">เข้าสู่ระบบ</a>
+        <a href="/dashboard" className="text-gray-600 hover:text-blue-600 text-sm">← Dashboard</a>
       </nav>
 
       <div className="max-w-2xl mx-auto px-6 py-10">
@@ -65,7 +68,6 @@ export default function CreateListing() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6">
 
-          {/* ชื่อประกาศ */}
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">
               ชื่อประกาศ <span className="text-red-400">*</span>
@@ -75,11 +77,10 @@ export default function CreateListing() {
               value={form.title}
               onChange={handleChange}
               placeholder="เช่น คอนโดใจกลางเมือง, Honda Civic 2022"
-              className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
+              className={inputClass}
             />
           </div>
 
-          {/* หมวดหมู่ */}
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">
               หมวดหมู่ <span className="text-red-400">*</span>
@@ -88,7 +89,7 @@ export default function CreateListing() {
               name="category"
               value={form.category}
               onChange={handleChange}
-              className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-400">
+              className={inputClass}>
               <option value="">เลือกหมวดหมู่</option>
               {categories.map((cat) => (
                 <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -96,7 +97,6 @@ export default function CreateListing() {
             </select>
           </div>
 
-          {/* รายละเอียด */}
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">รายละเอียด</label>
             <textarea
@@ -105,11 +105,10 @@ export default function CreateListing() {
               onChange={handleChange}
               rows={4}
               placeholder="อธิบายรายละเอียดสินค้า สภาพ เงื่อนไขการเช่า..."
-              className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-400 resize-none"
+              className={inputClass + " resize-none"}
             />
           </div>
 
-          {/* ราคาและสถานที่ */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">
@@ -121,7 +120,7 @@ export default function CreateListing() {
                 value={form.price_per_day}
                 onChange={handleChange}
                 placeholder="500"
-                className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
+                className={inputClass}
               />
             </div>
             <div>
@@ -131,12 +130,11 @@ export default function CreateListing() {
                 value={form.location}
                 onChange={handleChange}
                 placeholder="กรุงเทพฯ, เชียงใหม่..."
-                className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
+                className={inputClass}
               />
             </div>
           </div>
 
-          {/* อัปโหลดรูป (placeholder) */}
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">รูปภาพ</label>
             <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center hover:border-blue-300 cursor-pointer transition-all">
@@ -147,7 +145,7 @@ export default function CreateListing() {
           </div>
 
           {message && (
-            <p className="text-sm text-center py-3 px-4 bg-gray-50 rounded-lg">{message}</p>
+            <p className="text-sm text-center py-3 px-4 bg-gray-50 rounded-lg text-gray-700">{message}</p>
           )}
 
           <button
@@ -157,8 +155,8 @@ export default function CreateListing() {
             {loading ? 'กำลังบันทึก...' : 'ลงประกาศ'}
           </button>
 
-          <a href="/" className="block text-center text-sm text-gray-400 hover:text-blue-500">
-            ← กลับหน้าหลัก
+          <a href="/dashboard" className="block text-center text-sm text-gray-400 hover:text-blue-500">
+            ← กลับ Dashboard
           </a>
         </div>
       </div>
