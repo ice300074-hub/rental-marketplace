@@ -1,6 +1,31 @@
-import Link from 'next/link'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 
 export default function Home() {
+  const [listings, setListings] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchListings = async () => {
+      const { data } = await supabase
+        .from('listings')
+        .select('*')
+        .eq('is_available', true)
+        .order('created_at', { ascending: false })
+        .limit(6)
+      setListings(data || [])
+    }
+    fetchListings()
+  }, [])
+
+  const categoryLabel: Record<string, string> = {
+    house: '🏠 บ้าน/คอนโด',
+    car: '🚗 รถยนต์',
+    equipment: '🔧 อุปกรณ์',
+    fashion: '👗 เสื้อผ้า',
+  }
+
   return (
     <main className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
@@ -40,23 +65,28 @@ export default function Home() {
 
       <section className="max-w-5xl mx-auto px-6 pb-16">
         <h3 className="text-2xl font-bold text-gray-800 mb-6">ประกาศล่าสุด</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { title: 'คอนโดใจกลางเมือง', price: '8,000', unit: 'เดือน', cat: '🏠 บ้าน/คอนโด', location: 'กรุงเทพฯ' },
-            { title: 'Honda Civic 2022', price: '1,200', unit: 'วัน', cat: '🚗 รถยนต์', location: 'เชียงใหม่' },
-            { title: 'กล้อง Sony A7III', price: '800', unit: 'วัน', cat: '🔧 อุปกรณ์', location: 'กรุงเทพฯ' },
-          ].map((item) => (
-            <div key={item.title} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden cursor-pointer">
-              <div className="bg-gray-200 h-48 flex items-center justify-center text-gray-400">รูปภาพ</div>
-              <div className="p-4">
-                <p className="text-xs text-blue-500 mb-1">{item.cat}</p>
-                <h4 className="font-semibold text-gray-800">{item.title}</h4>
-                <p className="text-sm text-gray-400 mt-1">📍 {item.location}</p>
-                <p className="text-blue-600 font-bold mt-2">฿{item.price} <span className="text-gray-400 font-normal text-sm">/ {item.unit}</span></p>
-              </div>
-            </div>
-          ))}
-        </div>
+        {listings.length === 0 ? (
+          <div className="text-center py-16 text-gray-400">
+            <p className="text-5xl mb-4">📋</p>
+            <p>ยังไม่มีประกาศ</p>
+            <a href="/create" className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg text-sm">ลงประกาศแรก</a>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {listings.map((item) => (
+              <a key={item.id} href={`/listings/${item.id}`}
+                className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden cursor-pointer block">
+                <div className="bg-gray-200 h-48 flex items-center justify-center text-gray-400">รูปภาพ</div>
+                <div className="p-4">
+                  <p className="text-xs text-blue-500 mb-1">{categoryLabel[item.category] || item.category}</p>
+                  <h4 className="font-semibold text-gray-800">{item.title}</h4>
+                  {item.location && <p className="text-sm text-gray-400 mt-1">📍 {item.location}</p>}
+                  <p className="text-blue-600 font-bold mt-2">฿{item.price_per_day?.toLocaleString()} <span className="text-gray-400 font-normal text-sm">/ วัน</span></p>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
       </section>
     </main>
   )
