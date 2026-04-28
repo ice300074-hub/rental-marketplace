@@ -205,7 +205,7 @@ export default function ProfilePage() {
                   </div>
                   <p className="text-sm text-gray-400">{booking.start_date} → {booking.end_date}</p>
                   <p className="text-blue-600 font-bold mt-2">฿{booking.total_price?.toLocaleString()}</p>
-                  <div className="flex gap-2 mt-3">
+                  <div className="flex gap-2 mt-3 flex-wrap">
                     {booking.status === 'pending' && (
                       <a href={`/payment/${booking.id}`}
                         className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
@@ -213,10 +213,16 @@ export default function ProfilePage() {
                       </a>
                     )}
                     {(booking.status === 'paid' || booking.status === 'confirmed') && (
-                      <a href={`/review/${booking.id}`}
-                        className="inline-block bg-yellow-400 text-white px-4 py-2 rounded-lg text-sm hover:bg-yellow-500">
-                        ⭐ เขียนรีวิว
-                      </a>
+                      <>
+                        <a href={`/deposit/${booking.id}`}
+                          className="inline-block bg-purple-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-600">
+                          🔒 มัดจำ/ประกัน
+                        </a>
+                        <a href={`/review/${booking.id}`}
+                          className="inline-block bg-yellow-400 text-white px-4 py-2 rounded-lg text-sm hover:bg-yellow-500">
+                          ⭐ เขียนรีวิว
+                        </a>
+                      </>
                     )}
                   </div>
                 </div>
