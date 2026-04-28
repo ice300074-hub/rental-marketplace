@@ -20,11 +20,20 @@ export default function CreateListing() {
     price_per_day: '',
     location: '',
   })
+  const [images, setImages] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).slice(0, 5)
+    setImages(files)
+    const urls = files.map(f => URL.createObjectURL(f))
+    setPreviews(urls)
   }
 
   const handleSubmit = async () => {
@@ -36,6 +45,24 @@ export default function CreateListing() {
     setMessage('')
 
     const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { window.location.href = '/auth'; return }
+
+    const imageUrls: string[] = []
+
+    for (const image of images) {
+      const ext = image.name.split('.').pop()
+      const fileName = `${user.id}/${Date.now()}.${ext}`
+      const { data, error } = await supabase.storage
+        .from('listing-images')
+        .upload(fileName, image, { upsert: true })
+
+      if (!error && data) {
+        const { data: urlData } = supabase.storage
+          .from('listing-images')
+          .getPublicUrl(data.path)
+        imageUrls.push(urlData.publicUrl)
+      }
+    }
 
     const { error } = await supabase.from('listings').insert([{
       title: form.title,
@@ -44,7 +71,8 @@ export default function CreateListing() {
       price_per_day: Number(form.price_per_day),
       location: form.location,
       is_available: true,
-      owner_id: user?.id,
+      owner_id: user.id,
+      images: imageUrls,
     }])
 
     if (error) setMessage('❌ ' + error.message)
@@ -72,24 +100,16 @@ export default function CreateListing() {
             <label className="text-sm font-medium text-gray-700 mb-1 block">
               ชื่อประกาศ <span className="text-red-400">*</span>
             </label>
-            <input
-              name="title"
-              value={form.title}
-              onChange={handleChange}
+            <input name="title" value={form.title} onChange={handleChange}
               placeholder="เช่น คอนโดใจกลางเมือง, Honda Civic 2022"
-              className={inputClass}
-            />
+              className={inputClass}/>
           </div>
 
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">
               หมวดหมู่ <span className="text-red-400">*</span>
             </label>
-            <select
-              name="category"
-              value={form.category}
-              onChange={handleChange}
-              className={inputClass}>
+            <select name="category" value={form.category} onChange={handleChange} className={inputClass}>
               <option value="">เลือกหมวดหมู่</option>
               {categories.map((cat) => (
                 <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -99,14 +119,9 @@ export default function CreateListing() {
 
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">รายละเอียด</label>
-            <textarea
-              name="description"
-              value={form.description}
-              onChange={handleChange}
-              rows={4}
-              placeholder="อธิบายรายละเอียดสินค้า สภาพ เงื่อนไขการเช่า..."
-              className={inputClass + " resize-none"}
-            />
+            <textarea name="description" value={form.description} onChange={handleChange}
+              rows={4} placeholder="อธิบายรายละเอียดสินค้า สภาพ เงื่อนไขการเช่า..."
+              className={inputClass + " resize-none"}/>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -114,45 +129,49 @@ export default function CreateListing() {
               <label className="text-sm font-medium text-gray-700 mb-1 block">
                 ราคา / วัน (฿) <span className="text-red-400">*</span>
               </label>
-              <input
-                name="price_per_day"
-                type="number"
-                value={form.price_per_day}
-                onChange={handleChange}
-                placeholder="500"
-                className={inputClass}
-              />
+              <input name="price_per_day" type="number" value={form.price_per_day}
+                onChange={handleChange} placeholder="500" className={inputClass}/>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">สถานที่</label>
-              <input
-                name="location"
-                value={form.location}
-                onChange={handleChange}
-                placeholder="กรุงเทพฯ, เชียงใหม่..."
-                className={inputClass}
-              />
+              <input name="location" value={form.location} onChange={handleChange}
+                placeholder="กรุงเทพฯ, เชียงใหม่..." className={inputClass}/>
             </div>
           </div>
 
+          {/* อัปโหลดรูปภาพจริง */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">รูปภาพ</label>
-            <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center hover:border-blue-300 cursor-pointer transition-all">
-              <p className="text-4xl mb-2">📷</p>
-              <p className="text-sm text-gray-400">คลิกเพื่ออัปโหลดรูปภาพ</p>
-              <p className="text-xs text-gray-300 mt-1">JPG, PNG ขนาดไม่เกิน 5MB</p>
-            </div>
+            <label className="text-sm font-medium text-gray-700 mb-2 block">
+              รูปภาพ <span className="text-gray-400 font-normal">(สูงสุด 5 รูป)</span>
+            </label>
+            <input type="file" accept="image/*" multiple onChange={handleImageChange}
+              className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-800 bg-white"/>
+
+            {previews.length > 0 && (
+              <div className="grid grid-cols-3 gap-3 mt-3">
+                {previews.map((url, i) => (
+                  <img key={i} src={url} alt={`preview ${i+1}`}
+                    className="rounded-lg w-full h-28 object-cover border border-gray-200"/>
+                ))}
+              </div>
+            )}
+
+            {previews.length === 0 && (
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center mt-2">
+                <p className="text-3xl mb-2">📷</p>
+                <p className="text-sm text-gray-400">คลิกเพื่ออัปโหลดรูปภาพ</p>
+                <p className="text-xs text-gray-300 mt-1">JPG, PNG ขนาดไม่เกิน 50MB</p>
+              </div>
+            )}
           </div>
 
           {message && (
             <p className="text-sm text-center py-3 px-4 bg-gray-50 rounded-lg text-gray-700">{message}</p>
           )}
 
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
+          <button onClick={handleSubmit} disabled={loading}
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-all">
-            {loading ? 'กำลังบันทึก...' : 'ลงประกาศ'}
+            {loading ? 'กำลังอัปโหลด...' : 'ลงประกาศ'}
           </button>
 
           <a href="/dashboard" className="block text-center text-sm text-gray-400 hover:text-blue-500">
