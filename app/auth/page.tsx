@@ -20,7 +20,7 @@ export default function AuthPage() {
       if (error) setMessage('❌ ' + error.message)
       else {
         setMessage('✅ เข้าสู่ระบบสำเร็จ!')
-        window.location.href = '/dashboard'
+        window.location.href = '/'
       }
     } else {
       const { error } = await supabase.auth.signUp({

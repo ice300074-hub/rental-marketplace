@@ -5,9 +5,13 @@ import { supabase } from '@/lib/supabase'
 
 export default function Home() {
   const [listings, setListings] = useState<any[]>([])
+  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
-    const fetchListings = async () => {
+    const fetchData = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+
       const { data } = await supabase
         .from('listings')
         .select('*')
@@ -16,7 +20,7 @@ export default function Home() {
         .limit(6)
       setListings(data || [])
     }
-    fetchListings()
+    fetchData()
   }, [])
 
   const categoryLabel: Record<string, string> = {
@@ -30,9 +34,19 @@ export default function Home() {
     <main className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-blue-600">RentHub</h1>
-        <div className="flex gap-4">
-          <a href="/auth" className="text-gray-600 hover:text-blue-600">เข้าสู่ระบบ</a>
-          <a href="/create" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">ลงประกาศ</a>
+        <div className="flex gap-4 items-center">
+          {user ? (
+            <>
+              <a href="/dashboard" className="text-gray-600 hover:text-blue-600 text-sm">Dashboard</a>
+              <a href="/profile" className="text-gray-600 hover:text-blue-600 text-sm">โปรไฟล์</a>
+              <a href="/create" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm">ลงประกาศ</a>
+            </>
+          ) : (
+            <>
+              <a href="/auth" className="text-gray-600 hover:text-blue-600 text-sm">เข้าสู่ระบบ</a>
+              <a href="/create" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm">ลงประกาศ</a>
+            </>
+          )}
         </div>
       </nav>
 
