@@ -18,7 +18,6 @@ export default function BookingPage({ params }: { params: { id: string } }) {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       if (!user) window.location.href = '/auth'
-
       const { data } = await supabase
         .from('listings')
         .select('*')
@@ -56,19 +55,20 @@ export default function BookingPage({ params }: { params: { id: string } }) {
     setLoading(true)
     setMessage('')
 
-    const { error } = await supabase.from('bookings').insert([{
+    const { data: bookingData, error } = await supabase.from('bookings').insert([{
       listing_id: params.id,
       renter_id: user.id,
       start_date: startDate,
       end_date: endDate,
       total_price: totalPrice,
       status: 'pending',
-    }])
+    }]).select()
 
-    if (error) setMessage('❌ ' + error.message)
-    else {
-      setMessage('✅ จองสำเร็จแล้ว! รอการยืนยันจากเจ้าของ')
-      setTimeout(() => window.location.href = '/dashboard', 2000)
+    if (error) {
+      setMessage('❌ ' + error.message)
+    } else {
+      setMessage('✅ จองสำเร็จ! กำลังไปหน้าชำระเงิน...')
+      setTimeout(() => window.location.href = `/payment/${bookingData[0].id}`, 1500)
     }
     setLoading(false)
   }
@@ -92,7 +92,6 @@ export default function BookingPage({ params }: { params: { id: string } }) {
         <h2 className="text-2xl font-bold text-gray-800 mb-2">จองสินค้า</h2>
         <p className="text-gray-400 mb-8">เลือกวันที่ต้องการเช่า</p>
 
-        {/* รายละเอียดสินค้า */}
         <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6 flex gap-4">
           <div className="bg-gray-200 rounded-lg w-20 h-20 flex items-center justify-center text-gray-400 flex-shrink-0">
             📷
@@ -106,7 +105,6 @@ export default function BookingPage({ params }: { params: { id: string } }) {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6">
 
-          {/* เลือกวันที่ */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">วันที่เริ่มเช่า</label>
@@ -130,7 +128,6 @@ export default function BookingPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* สรุปราคา */}
           {totalDays > 0 && (
             <div className="bg-blue-50 rounded-xl p-5 space-y-3">
               <h3 className="font-semibold text-gray-800">สรุปการจอง</h3>
