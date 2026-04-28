@@ -9,6 +9,7 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
   const [user, setUser] = useState<any>(null)
   const [reviews, setReviews] = useState<any[]>([])
   const [avgRating, setAvgRating] = useState(0)
+  const [currentImage, setCurrentImage] = useState(0)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,6 +59,8 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
     </div>
   )
 
+  const images = listing.images || []
+
   return (
     <main className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
@@ -68,10 +71,32 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
       <div className="max-w-4xl mx-auto px-6 py-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-          <div className="bg-gray-200 rounded-2xl h-80 flex items-center justify-center text-gray-400 text-lg">
-            📷 รูปภาพ
+          {/* รูปภาพ */}
+          <div>
+            {images.length > 0 ? (
+              <div>
+                <img src={images[currentImage]} alt={listing.title}
+                  className="w-full h-80 object-cover rounded-2xl mb-3"/>
+                {images.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto">
+                    {images.map((img: string, i: number) => (
+                      <img key={i} src={img} alt={`${i+1}`}
+                        onClick={() => setCurrentImage(i)}
+                        className={`w-16 h-16 object-cover rounded-lg cursor-pointer flex-shrink-0 border-2 transition-all ${
+                          currentImage === i ? 'border-blue-500' : 'border-transparent'
+                        }`}/>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-gray-200 rounded-2xl h-80 flex items-center justify-center text-gray-400 text-5xl">
+                📷
+              </div>
+            )}
           </div>
 
+          {/* รายละเอียด */}
           <div>
             <p className="text-sm text-blue-500 mb-2">{categoryLabel[listing.category] || listing.category}</p>
             <h1 className="text-2xl font-bold text-gray-800 mb-2">{listing.title}</h1>
