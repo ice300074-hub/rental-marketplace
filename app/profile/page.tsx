@@ -36,10 +36,7 @@ export default function ProfilePage() {
       setBookings(bookingData || [])
 
       if (user.user_metadata) {
-        setForm(prev => ({
-          ...prev,
-          full_name: user.user_metadata.full_name || '',
-        }))
+        setForm(prev => ({ ...prev, full_name: user.user_metadata.full_name || '' }))
       }
     }
     fetchData()
@@ -63,9 +60,7 @@ export default function ProfilePage() {
 
   const handleSaveInfo = async () => {
     setLoading(true)
-    await supabase.auth.updateUser({
-      data: { full_name: form.full_name }
-    })
+    await supabase.auth.updateUser({ data: { full_name: form.full_name } })
     setMessage('✅ บันทึกข้อมูลสำเร็จ!')
     setLoading(false)
     setTimeout(() => setMessage(''), 3000)
@@ -115,7 +110,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
           {[
             { key: 'info', label: 'ข้อมูลส่วนตัว' },
@@ -130,7 +124,6 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* Tab: ข้อมูลส่วนตัว */}
         {activeTab === 'info' && (
           <div className="bg-white rounded-2xl border border-gray-100 p-8 space-y-5">
             <div>
@@ -153,9 +146,7 @@ export default function ProfilePage() {
               <label className="text-sm font-medium text-gray-700 mb-1 block">ที่อยู่</label>
               <input name="address" value={form.address} onChange={handleChange} placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด" className={inputClass}/>
             </div>
-
             {message && <p className="text-sm text-center py-3 bg-gray-50 rounded-lg text-gray-700">{message}</p>}
-
             <button onClick={handleSaveInfo} disabled={loading}
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50">
               {loading ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
@@ -163,42 +154,31 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Tab: ยืนยันตัวตน */}
         {activeTab === 'verify' && (
           <div className="bg-white rounded-2xl border border-gray-100 p-8 space-y-6">
             <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700">
               🔒 การยืนยันตัวตนช่วยสร้างความน่าเชื่อถือและป้องกันมิจฉาชีพในระบบ
             </div>
-
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">เลขบัตรประชาชน</label>
               <input name="id_card" value={form.id_card} onChange={handleChange}
-                placeholder="X-XXXX-XXXXX-XX-X" maxLength={17}
-                className={inputClass}/>
+                placeholder="X-XXXX-XXXXX-XX-X" maxLength={17} className={inputClass}/>
               <p className="text-xs text-gray-400 mt-1">ข้อมูลนี้จะถูกเก็บเป็นความลับ</p>
             </div>
-
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">รูปถ่ายบัตรประชาชน</label>
               <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'id')}
                 className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-800 bg-white"/>
-              {idCardImage && (
-                <img src={idCardImage} alt="id card" className="mt-3 rounded-lg w-full max-h-40 object-cover"/>
-              )}
+              {idCardImage && <img src={idCardImage} alt="id card" className="mt-3 rounded-lg w-full max-h-40 object-cover"/>}
             </div>
-
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">Selfie คู่บัตรประชาชน</label>
               <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'selfie')}
                 className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-800 bg-white"/>
-              {selfieImage && (
-                <img src={selfieImage} alt="selfie" className="mt-3 rounded-lg w-full max-h-40 object-cover"/>
-              )}
+              {selfieImage && <img src={selfieImage} alt="selfie" className="mt-3 rounded-lg w-full max-h-40 object-cover"/>}
               <p className="text-xs text-gray-400 mt-1">ถ่ายรูปตัวเองพร้อมบัตรประชาชน ให้เห็นหน้าและบัตรชัดเจน</p>
             </div>
-
             {message && <p className="text-sm text-center py-3 bg-gray-50 rounded-lg text-gray-700">{message}</p>}
-
             <button onClick={handleVerify} disabled={loading}
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50">
               {loading ? 'กำลังส่ง...' : 'ส่งข้อมูลยืนยันตัวตน'}
@@ -206,7 +186,6 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Tab: ประวัติการเช่า */}
         {activeTab === 'history' && (
           <div className="space-y-4">
             {bookings.length === 0 ? (
@@ -226,12 +205,20 @@ export default function ProfilePage() {
                   </div>
                   <p className="text-sm text-gray-400">{booking.start_date} → {booking.end_date}</p>
                   <p className="text-blue-600 font-bold mt-2">฿{booking.total_price?.toLocaleString()}</p>
-                  {booking.status === 'pending' && (
-                    <a href={`/payment/${booking.id}`}
-                      className="mt-3 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
-                      ชำระเงิน
-                    </a>
-                  )}
+                  <div className="flex gap-2 mt-3">
+                    {booking.status === 'pending' && (
+                      <a href={`/payment/${booking.id}`}
+                        className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
+                        ชำระเงิน
+                      </a>
+                    )}
+                    {(booking.status === 'paid' || booking.status === 'confirmed') && (
+                      <a href={`/review/${booking.id}`}
+                        className="inline-block bg-yellow-400 text-white px-4 py-2 rounded-lg text-sm hover:bg-yellow-500">
+                        ⭐ เขียนรีวิว
+                      </a>
+                    )}
+                  </div>
                 </div>
               ))
             )}
