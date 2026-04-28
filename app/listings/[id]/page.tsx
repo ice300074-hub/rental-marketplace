@@ -7,17 +7,33 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
   const [listing, setListing] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
+  const [reviews, setReviews] = useState<any[]>([])
+  const [avgRating, setAvgRating] = useState(0)
 
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
+
       const { data } = await supabase
         .from('listings')
         .select('*')
         .eq('id', params.id)
         .single()
       setListing(data)
+
+      const { data: reviewData } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('listing_id', params.id)
+        .order('created_at', { ascending: false })
+      setReviews(reviewData || [])
+
+      if (reviewData && reviewData.length > 0) {
+        const avg = reviewData.reduce((sum: number, r: any) => sum + r.rating, 0) / reviewData.length
+        setAvgRating(Math.round(avg * 10) / 10)
+      }
+
       setLoading(false)
     }
     fetchData()
@@ -53,17 +69,23 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
           <div className="bg-gray-200 rounded-2xl h-80 flex items-center justify-center text-gray-400 text-lg">
-            รูปภาพ
+            📷 รูปภาพ
           </div>
 
           <div>
-            <p className="text-sm text-blue-500 mb-2">
-              {categoryLabel[listing.category] || listing.category}
-            </p>
+            <p className="text-sm text-blue-500 mb-2">{categoryLabel[listing.category] || listing.category}</p>
             <h1 className="text-2xl font-bold text-gray-800 mb-2">{listing.title}</h1>
 
             {listing.location && (
-              <p className="text-gray-400 text-sm mb-4">📍 {listing.location}</p>
+              <p className="text-gray-400 text-sm mb-2">📍 {listing.location}</p>
+            )}
+
+            {reviews.length > 0 && (
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-yellow-400">⭐</span>
+                <span className="font-semibold text-gray-800">{avgRating}</span>
+                <span className="text-gray-400 text-sm">({reviews.length} รีวิว)</span>
+              </div>
             )}
 
             <div className="bg-blue-50 rounded-xl p-4 mb-6">
@@ -89,23 +111,46 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
             {listing.is_available && (
               <div className="space-y-3">
                 {user ? (
-                  <a href={`/booking/${listing.id}`}
-                    className="block w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all text-center">
-                    จองเลย
-                  </a>
+                  <>
+                    <a href={`/booking/${listing.id}`}
+                      className="block w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all text-center">
+                      จองเลย
+                    </a>
+                    <a href={`/chat/${listing.id}`}
+                      className="block w-full border border-gray-200 text-gray-600 py-3 rounded-xl hover:bg-gray-50 transition-all text-center">
+                      💬 ติดต่อผู้ให้เช่า
+                    </a>
+                  </>
                 ) : (
                   <a href="/auth"
                     className="block w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all text-center">
                     เข้าสู่ระบบเพื่อจอง
                   </a>
                 )}
-                <button className="w-full border border-gray-200 text-gray-600 py-3 rounded-xl hover:bg-gray-50 transition-all">
-                  💬 ติดต่อผู้ให้เช่า
-                </button>
               </div>
             )}
           </div>
         </div>
+
+        {/* รีวิว */}
+        {reviews.length > 0 && (
+          <div className="mt-12">
+            <h3 className="text-xl font-bold text-gray-800 mb-6">รีวิวจากผู้เช่า ({reviews.length})</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {reviews.map((review) => (
+                <div key={review.id} className="bg-white rounded-xl border border-gray-100 p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-yellow-400">{'⭐'.repeat(review.rating)}</span>
+                    <span className="text-sm text-gray-400">
+                      {new Date(review.created_at).toLocaleDateString('th-TH')}
+                    </span>
+                  </div>
+                  <p className="text-gray-600 text-sm leading-relaxed">{review.comment}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </main>
   )
