@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import generatePayload from 'promptpay-qr'
+import QRCode from 'qrcode'
 
 export default function PaymentPage({ params }: { params: { id: string } }) {
   const [booking, setBooking] = useState<any>(null)
@@ -10,6 +12,9 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [slip, setSlip] = useState<string | null>(null)
+  const [qrCode, setQrCode] = useState<string>('')
+
+  const PROMPTPAY_NUMBER = '0991966336' // เปลี่ยนเป็นเบอร์จริงของคุณ
 
   useEffect(() => {
     const fetchData = async () => {
@@ -21,6 +26,16 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
       if (bookingData) {
         setBooking(bookingData)
         setListing(bookingData.listings)
+
+        // สร้าง QR จริง
+        const amount = bookingData.total_price
+        const payload = generatePayload(PROMPTPAY_NUMBER, { amount })
+        const qr = await QRCode.toDataURL(payload, {
+          width: 200,
+          margin: 2,
+          color: { dark: '#000000', light: '#ffffff' }
+        })
+        setQrCode(qr)
       }
     }
     fetchData()
@@ -42,7 +57,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
       .update({ status: 'paid' })
       .eq('id', params.id)
     setMessage('✅ ชำระเงินสำเร็จ! รอการยืนยันจากเจ้าของ')
-    setTimeout(() => window.location.href = '/dashboard', 2000)
+    setTimeout(() => window.location.href = '/profile', 2000)
     setLoading(false)
   }
 
@@ -52,20 +67,17 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
     </div>
   )
 
-  const PROMPTPAY_NUMBER = '0812345678'
-
   return (
     <main className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
         <a href="/" className="text-2xl font-bold text-blue-600">RentHub</a>
-        <a href="/dashboard" className="text-gray-600 hover:text-blue-600 text-sm">← Dashboard</a>
+        <a href="/profile" className="text-gray-600 hover:text-blue-600 text-sm">← กลับ</a>
       </nav>
 
       <div className="max-w-lg mx-auto px-6 py-10">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">ชำระเงิน</h2>
         <p className="text-gray-400 mb-8">เลือกวิธีชำระเงิน</p>
 
-        {/* สรุปการจอง */}
         <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6">
           <h3 className="font-semibold text-gray-800 mb-3">สรุปการจอง</h3>
           <div className="space-y-2 text-sm">
@@ -88,7 +100,6 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* เลือกวิธีชำระ */}
         <div className="flex gap-3 mb-6">
           <button
             onClick={() => setMethod('promptpay')}
@@ -109,11 +120,15 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
               <div className="text-center">
                 <p className="text-sm text-gray-500 mb-3">สแกน QR หรือโอนไปที่</p>
                 <div className="bg-gray-50 rounded-xl p-6 inline-block mb-3">
-                  <div className="w-40 h-40 bg-gray-200 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <p className="text-xs text-gray-400 text-center">QR Code<br/>PromptPay</p>
-                  </div>
+                  {qrCode ? (
+                    <img src={qrCode} alt="PromptPay QR" className="w-48 h-48 mx-auto mb-3"/>
+                  ) : (
+                    <div className="w-48 h-48 bg-gray-200 rounded-lg flex items-center justify-center mx-auto mb-3">
+                      <p className="text-xs text-gray-400">กำลังสร้าง QR...</p>
+                    </div>
+                  )}
                   <p className="font-bold text-gray-800 text-lg">{PROMPTPAY_NUMBER}</p>
-                  <p className="text-blue-600 font-bold">฿{booking.total_price?.toLocaleString()}</p>
+                  <p className="text-blue-600 font-bold text-xl">฿{booking.total_price?.toLocaleString()}</p>
                 </div>
               </div>
 
@@ -123,8 +138,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
                   type="file"
                   accept="image/*"
                   onChange={handleSlipUpload}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-800 bg-white"
-                />
+                  className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-800 bg-white"/>
                 {slip && (
                   <img src={slip} alt="slip" className="mt-3 rounded-lg w-full max-h-48 object-cover"/>
                 )}
@@ -148,7 +162,6 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
                 💳 ระบบบัตรเครดิตผ่าน Omise — กรุณาสมัครที่ omise.co และใส่ API Key ใน .env.local ก่อนใช้งาน
               </div>
-
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">หมายเลขบัตร</label>
                 <input type="text" placeholder="0000 0000 0000 0000"
