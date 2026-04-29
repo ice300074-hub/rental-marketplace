@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from 'next'
+import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 
@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: 'RentHub — เช่าทุกอย่างในที่เดียว',
   description: 'แพลตฟอร์มเช่าสินค้าออนไลน์ บ้าน รถ อุปกรณ์ เสื้อผ้า',
   manifest: '/manifest.json',
+  themeColor: '#2563eb',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -16,13 +17,11 @@ export const metadata: Metadata = {
   icons: {
     apple: '/icon-192.png',
   },
-}
-
-export const viewport: Viewport = {
-  themeColor: '#2563eb',
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+  },
 }
 
 export default function RootLayout({
