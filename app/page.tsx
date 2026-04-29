@@ -96,7 +96,7 @@ export default function Home() {
       </section>
 
       <section className="max-w-5xl mx-auto px-6 py-10">
-        <h3 className="text-2xl font-bold text-gray-800 mb-6">หมวดหมู่</h3>
+        <h3 className="text-2xl font-bold text-gray-800 mb-6">หมวดหมู่ยอดนิยม</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {categories.map((cat) => (
             <div key={cat.key}
@@ -106,7 +106,7 @@ export default function Home() {
               }`}>
               <div className="text-4xl mb-3">{cat.icon}</div>
               <p className="font-semibold text-gray-800">{cat.label}</p>
-              <p className="text-sm text-gray-400 mt-1">{categoryCounts[cat.key] || 0} รายการ</p>
+              <p className="text-sm text-gray-400 mt-1">{categoryCounts[cat.key] ?? 0} รายการ</p>
             </div>
           ))}
         </div>
