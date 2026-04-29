@@ -12,18 +12,31 @@ export default function BookingPage({ params }: { params: { id: string } }) {
   const [message, setMessage] = useState('')
   const [totalDays, setTotalDays] = useState(0)
   const [totalPrice, setTotalPrice] = useState(0)
+  const [bookedDates, setBookedDates] = useState<{start: string, end: string}[]>([])
 
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       if (!user) window.location.href = '/auth'
+
       const { data } = await supabase
         .from('listings')
         .select('*')
         .eq('id', params.id)
         .single()
       setListing(data)
+
+      // ดึงวันที่จองที่มีอยู่แล้ว
+      const { data: bookings } = await supabase
+        .from('bookings')
+        .select('start_date, end_date')
+        .eq('listing_id', params.id)
+        .in('status', ['pending', 'confirmed'])
+
+      if (bookings) {
+        setBookedDates(bookings.map(b => ({ start: b.start_date, end: b.end_date })))
+      }
     }
     fetchData()
   }, [params.id])
@@ -43,6 +56,16 @@ export default function BookingPage({ params }: { params: { id: string } }) {
     }
   }, [startDate, endDate, listing])
 
+  const isDateOverlap = (start: string, end: string) => {
+    const newStart = new Date(start)
+    const newEnd = new Date(end)
+    return bookedDates.some(b => {
+      const bookedStart = new Date(b.start)
+      const bookedEnd = new Date(b.end)
+      return newStart < bookedEnd && newEnd > bookedStart
+    })
+  }
+
   const handleBooking = async () => {
     if (!startDate || !endDate) {
       setMessage('❌ กรุณาเลือกวันที่เช่าและวันที่คืน')
@@ -52,6 +75,13 @@ export default function BookingPage({ params }: { params: { id: string } }) {
       setMessage('❌ วันที่คืนต้องมากกว่าวันที่เช่า')
       return
     }
+
+    // เช็ควันที่ซ้ำ
+    if (isDateOverlap(startDate, endDate)) {
+      setMessage('❌ ช่วงวันที่นี้มีการจองแล้ว กรุณาเลือกวันอื่น')
+      return
+    }
+
     setLoading(true)
     setMessage('')
 
@@ -103,8 +133,20 @@ export default function BookingPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6">
+        {bookedDates.length > 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+            <p className="text-sm font-medium text-yellow-800 mb-2">📅 วันที่ถูกจองแล้ว</p>
+            <div className="space-y-1">
+              {bookedDates.map((b, i) => (
+                <p key={i} className="text-xs text-yellow-700">
+                  {new Date(b.start).toLocaleDateString('th-TH')} — {new Date(b.end).toLocaleDateString('th-TH')}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
 
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">วันที่เริ่มเช่า</label>
