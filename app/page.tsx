@@ -3,12 +3,20 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
+const PROVINCES = [
+  'กรุงเทพมหานคร', 'เชียงใหม่', 'เชียงราย', 'ภูเก็ต', 'ชลบุรี',
+  'ขอนแก่น', 'นครราชสีมา', 'อุดรธานี', 'สงขลา', 'สุราษฎร์ธานี',
+  'นนทบุรี', 'ปทุมธานี', 'สมุทรปราการ', 'นครปฐม', 'อยุธยา',
+  'ลำปาง', 'พิษณุโลก', 'อุบลราชธานี', 'มหาสารคาม', 'ระยอง',
+]
+
 export default function Home() {
   const [listings, setListings] = useState<any[]>([])
   const [filtered, setFiltered] = useState<any[]>([])
   const [user, setUser] = useState<any>(null)
   const [search, setSearch] = useState('')
   const [selectedCat, setSelectedCat] = useState('')
+  const [selectedProvince, setSelectedProvince] = useState('')
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({})
 
   useEffect(() => {
@@ -47,8 +55,13 @@ export default function Home() {
     if (selectedCat) {
       result = result.filter(l => l.category === selectedCat)
     }
+    if (selectedProvince) {
+      result = result.filter(l =>
+        l.location?.toLowerCase().includes(selectedProvince.toLowerCase())
+      )
+    }
     setFiltered(result)
-  }, [search, selectedCat, listings])
+  }, [search, selectedCat, selectedProvince, listings])
 
   const categories = [
     { key: 'house', icon: '🏠', label: 'บ้าน / คอนโด' },
@@ -87,11 +100,27 @@ export default function Home() {
       <section className="bg-blue-600 text-white py-16 px-6 text-center">
         <h2 className="text-4xl font-bold mb-4">เช่าทุกอย่าง ในที่เดียว</h2>
         <p className="text-xl mb-8 text-blue-100">บ้าน • รถ • อุปกรณ์ • เสื้อผ้า</p>
-        <div className="max-w-2xl mx-auto flex gap-2">
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+        <div className="max-w-3xl mx-auto flex gap-2 flex-wrap justify-center">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="ค้นหาสิ่งที่อยากเช่า..."
-            className="flex-1 px-4 py-3 rounded-lg text-gray-800 text-lg focus:outline-none"/>
-          <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-bold hover:bg-blue-50">ค้นหา</button>
+            className="flex-1 min-w-[200px] px-4 py-3 rounded-lg text-gray-800 text-lg focus:outline-none"
+          />
+          <select
+            value={selectedProvince}
+            onChange={(e) => setSelectedProvince(e.target.value)}
+            className="px-4 py-3 rounded-lg text-gray-800 text-base focus:outline-none bg-white min-w-[160px]"
+          >
+            <option value="">📍 ทุกจังหวัด</option>
+            {PROVINCES.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-bold hover:bg-blue-50">
+            ค้นหา
+          </button>
         </div>
       </section>
 
@@ -116,11 +145,14 @@ export default function Home() {
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-2xl font-bold text-gray-800">
             {selectedCat ? categories.find(c => c.key === selectedCat)?.label : 'ประกาศล่าสุด'}
+            {selectedProvince && <span className="text-blue-500 ml-2 text-lg">📍 {selectedProvince}</span>}
             <span className="text-base font-normal text-gray-400 ml-2">({filtered.length} รายการ)</span>
           </h3>
-          {selectedCat && (
-            <button onClick={() => setSelectedCat('')} className="text-sm text-blue-500 hover:underline">
-              ดูทั้งหมด
+          {(selectedCat || selectedProvince) && (
+            <button
+              onClick={() => { setSelectedCat(''); setSelectedProvince('') }}
+              className="text-sm text-blue-500 hover:underline">
+              ล้างตัวกรอง
             </button>
           )}
         </div>
@@ -129,7 +161,8 @@ export default function Home() {
           <div className="text-center py-16 text-gray-400">
             <p className="text-5xl mb-4">🔍</p>
             <p>ไม่พบประกาศที่ค้นหา</p>
-            <button onClick={() => { setSearch(''); setSelectedCat('') }}
+            <button
+              onClick={() => { setSearch(''); setSelectedCat(''); setSelectedProvince('') }}
               className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg text-sm">
               ล้างการค้นหา
             </button>
@@ -140,12 +173,9 @@ export default function Home() {
               <a key={item.id} href={`/listings/${item.id}`}
                 className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden cursor-pointer block">
                 {item.images && item.images.length > 0 ? (
-                  <img src={item.images[0]} alt={item.title}
-                    className="w-full h-48 object-cover"/>
+                  <img src={item.images[0]} alt={item.title} className="w-full h-48 object-cover"/>
                 ) : (
-                  <div className="bg-gray-200 h-48 flex items-center justify-center text-gray-400 text-4xl">
-                    📷
-                  </div>
+                  <div className="bg-gray-200 h-48 flex items-center justify-center text-gray-400 text-4xl">📷</div>
                 )}
                 <div className="p-4">
                   <p className="text-xs text-blue-500 mb-1">{categoryLabel[item.category] || item.category}</p>
