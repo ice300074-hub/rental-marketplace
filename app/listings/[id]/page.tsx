@@ -42,9 +42,55 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
 
   const categoryLabel: Record<string, string> = {
     house: '🏠 บ้าน / คอนโด / ห้อง',
+    villa: '🏖️ พูลวิลล่า / รีสอร์ท',
+    office: '🏢 ออฟฟิศ / พื้นที่ทำงาน',
     car: '🚗 รถยนต์ / มอเตอร์ไซค์',
     equipment: '🔧 อุปกรณ์ / เครื่องมือ',
     fashion: '👗 เสื้อผ้า / แฟชั่น',
+  }
+
+  const rentalTypeLabel: Record<string, string> = {
+    daily: 'รายวัน / รายคืน',
+    monthly: 'รายเดือน',
+    yearly: 'รายปี',
+  }
+
+  const getPriceDisplay = () => {
+    if (!listing) return null
+    if (listing.category === 'villa') {
+      return (
+        <div className="bg-blue-50 rounded-xl p-4 mb-4">
+          <p className="text-3xl font-bold text-blue-600">
+            ฿{listing.price_per_day?.toLocaleString()}
+            <span className="text-lg font-normal text-gray-400"> / คืน</span>
+          </p>
+          {listing.min_stay_days && (
+            <p className="text-sm text-gray-500 mt-1">พักขั้นต่ำ {listing.min_stay_days} คืน</p>
+          )}
+        </div>
+      )
+    }
+    if (listing.category === 'house' || listing.category === 'office') {
+      return (
+        <div className="bg-blue-50 rounded-xl p-4 mb-4">
+          <p className="text-3xl font-bold text-blue-600">
+            ฿{listing.price_per_month?.toLocaleString()}
+            <span className="text-lg font-normal text-gray-400"> / เดือน</span>
+          </p>
+          {listing.rental_type && (
+            <p className="text-sm text-gray-500 mt-1">สัญญา{rentalTypeLabel[listing.rental_type]}</p>
+          )}
+        </div>
+      )
+    }
+    return (
+      <div className="bg-blue-50 rounded-xl p-4 mb-4">
+        <p className="text-3xl font-bold text-blue-600">
+          ฿{listing.price_per_day?.toLocaleString()}
+          <span className="text-lg font-normal text-gray-400"> / วัน</span>
+        </p>
+      </div>
+    )
   }
 
   if (loading) return (
@@ -102,7 +148,7 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
             <h1 className="text-2xl font-bold text-gray-800 mb-2">{listing.title}</h1>
 
             {listing.location && (
-              <p className="text-gray-400 text-sm mb-2">📍 {listing.location}</p>
+              <p className="text-gray-400 text-sm mb-3">📍 {listing.location}</p>
             )}
 
             {reviews.length > 0 && (
@@ -113,16 +159,32 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
               </div>
             )}
 
-            <div className="bg-blue-50 rounded-xl p-4 mb-6">
-              <p className="text-3xl font-bold text-blue-600">
-                ฿{listing.price_per_day?.toLocaleString()}
-                <span className="text-lg font-normal text-gray-400"> / วัน</span>
-              </p>
-            </div>
+            {/* ราคา */}
+            {getPriceDisplay()}
 
-            <div className="mb-6">
+            {/* ข้อมูลพิเศษ villa */}
+            {listing.category === 'villa' && (listing.max_guests || listing.min_stay_days) && (
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                {listing.max_guests && (
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-xl">👥</p>
+                    <p className="text-sm font-medium text-gray-800">{listing.max_guests} คน</p>
+                    <p className="text-xs text-gray-400">รองรับสูงสุด</p>
+                  </div>
+                )}
+                {listing.min_stay_days && (
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-xl">🌙</p>
+                    <p className="text-sm font-medium text-gray-800">{listing.min_stay_days} คืน</p>
+                    <p className="text-xs text-gray-400">พักขั้นต่ำ</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="mb-4">
               <h3 className="font-semibold text-gray-800 mb-2">รายละเอียด</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-gray-600 leading-relaxed text-sm">
                 {listing.description || 'ไม่มีรายละเอียดเพิ่มเติม'}
               </p>
             </div>
