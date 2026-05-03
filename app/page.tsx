@@ -14,11 +14,11 @@ const PROVINCES = [
 
 const PRICE_RANGES = [
   { label: 'ทุกราคา', min: 0, max: Infinity },
-  { label: 'ไม่เกิน ฿500/วัน', min: 0, max: 500 },
-  { label: '฿500 - ฿1,000/วัน', min: 500, max: 1000 },
-  { label: '฿1,000 - ฿3,000/วัน', min: 1000, max: 3000 },
-  { label: '฿3,000 - ฿10,000/วัน', min: 3000, max: 10000 },
-  { label: 'มากกว่า ฿10,000/วัน', min: 10000, max: Infinity },
+  { label: 'ไม่เกิน ฿500', min: 0, max: 500 },
+  { label: '฿500 - ฿1,000', min: 500, max: 1000 },
+  { label: '฿1,000 - ฿5,000', min: 1000, max: 5000 },
+  { label: '฿5,000 - ฿15,000', min: 5000, max: 15000 },
+  { label: 'มากกว่า ฿15,000', min: 15000, max: Infinity },
 ]
 
 export default function Home() {
@@ -75,9 +75,10 @@ export default function Home() {
     }
     const priceRange = PRICE_RANGES[selectedPrice]
     if (priceRange && (priceRange.min > 0 || priceRange.max !== Infinity)) {
-      result = result.filter(l =>
-        l.price_per_day >= priceRange.min && l.price_per_day <= priceRange.max
-      )
+      result = result.filter(l => {
+        const price = l.category === 'villa' ? l.price_per_day : (l.price_per_month || l.price_per_day)
+        return price >= priceRange.min && price <= priceRange.max
+      })
     }
     setFiltered(result)
   }, [search, selectedCat, selectedProvince, selectedPrice, listings])
@@ -93,6 +94,8 @@ export default function Home() {
 
   const categories = [
     { key: 'house', icon: '🏠', label: 'บ้าน / คอนโด' },
+    { key: 'villa', icon: '🏖️', label: 'พูลวิลล่า' },
+    { key: 'office', icon: '🏢', label: 'ออฟฟิศ' },
     { key: 'car', icon: '🚗', label: 'รถยนต์ / มอไซค์' },
     { key: 'equipment', icon: '🔧', label: 'อุปกรณ์ / เครื่องมือ' },
     { key: 'fashion', icon: '👗', label: 'เสื้อผ้า / แฟชั่น' },
@@ -100,9 +103,30 @@ export default function Home() {
 
   const categoryLabel: Record<string, string> = {
     house: '🏠 บ้าน/คอนโด',
+    villa: '🏖️ พูลวิลล่า',
+    office: '🏢 ออฟฟิศ',
     car: '🚗 รถยนต์',
     equipment: '🔧 อุปกรณ์',
     fashion: '👗 เสื้อผ้า',
+  }
+
+  const getPriceLabel = (item: any) => {
+    if (item.category === 'villa') {
+      return <p className="text-blue-600 font-bold mt-2">
+        ฿{item.price_per_day?.toLocaleString()}
+        <span className="text-gray-400 font-normal text-sm"> / คืน</span>
+      </p>
+    }
+    if (item.category === 'house' || item.category === 'office') {
+      return <p className="text-blue-600 font-bold mt-2">
+        ฿{item.price_per_month?.toLocaleString()}
+        <span className="text-gray-400 font-normal text-sm"> / เดือน</span>
+      </p>
+    }
+    return <p className="text-blue-600 font-bold mt-2">
+      ฿{item.price_per_day?.toLocaleString()}
+      <span className="text-gray-400 font-normal text-sm"> / วัน</span>
+    </p>
   }
 
   return (
@@ -125,12 +149,10 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero + Search */}
       <section className="bg-blue-600 text-white py-16 px-6 text-center">
         <h2 className="text-4xl font-bold mb-4">เช่าทุกอย่าง ในที่เดียว</h2>
-        <p className="text-xl mb-8 text-blue-100">บ้าน • รถ • อุปกรณ์ • เสื้อผ้า</p>
+        <p className="text-xl mb-8 text-blue-100">บ้าน • วิลล่า • ออฟฟิศ • รถ • อุปกรณ์</p>
 
-        {/* Search Bar */}
         <div className="max-w-3xl mx-auto flex gap-2 mb-3">
           <input
             type="text"
@@ -149,53 +171,34 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Filters */}
         {showFilters && (
           <div className="max-w-3xl mx-auto bg-white rounded-xl p-4 mt-2 grid grid-cols-1 md:grid-cols-3 gap-3 text-left">
-            {/* จังหวัด */}
             <div>
               <label className="text-xs font-medium text-gray-500 mb-1 block">📍 จังหวัด</label>
-              <select
-                value={selectedProvince}
-                onChange={(e) => setSelectedProvince(e.target.value)}
+              <select value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-400">
                 <option value="">ทุกจังหวัด</option>
-                {PROVINCES.map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
+                {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
-
-            {/* หมวดหมู่ */}
             <div>
               <label className="text-xs font-medium text-gray-500 mb-1 block">📦 หมวดหมู่</label>
-              <select
-                value={selectedCat}
-                onChange={(e) => setSelectedCat(e.target.value)}
+              <select value={selectedCat} onChange={(e) => setSelectedCat(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-400">
                 <option value="">ทุกหมวดหมู่</option>
-                {categories.map(c => (
-                  <option key={c.key} value={c.key}>{c.icon} {c.label}</option>
-                ))}
+                {categories.map(c => <option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}
               </select>
             </div>
-
-            {/* ราคา */}
             <div>
               <label className="text-xs font-medium text-gray-500 mb-1 block">💰 ช่วงราคา</label>
-              <select
-                value={selectedPrice}
-                onChange={(e) => setSelectedPrice(Number(e.target.value))}
+              <select value={selectedPrice} onChange={(e) => setSelectedPrice(Number(e.target.value))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-400">
-                {PRICE_RANGES.map((p, i) => (
-                  <option key={i} value={i}>{p.label}</option>
-                ))}
+                {PRICE_RANGES.map((p, i) => <option key={i} value={i}>{p.label}</option>)}
               </select>
             </div>
           </div>
         )}
 
-        {/* Active filters */}
         {hasFilter && (
           <div className="max-w-3xl mx-auto mt-3 flex flex-wrap gap-2 justify-center">
             {selectedProvince && (
@@ -223,25 +226,23 @@ export default function Home() {
         )}
       </section>
 
-      {/* หมวดหมู่ */}
       <section className="max-w-5xl mx-auto px-6 py-10">
         <h3 className="text-2xl font-bold text-gray-800 mb-6">หมวดหมู่ยอดนิยม</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
           {categories.map((cat) => (
             <div key={cat.key}
               onClick={() => setSelectedCat(selectedCat === cat.key ? '' : cat.key)}
-              className={`bg-white rounded-xl p-6 text-center shadow-sm cursor-pointer border transition-all ${
+              className={`bg-white rounded-xl p-4 text-center shadow-sm cursor-pointer border transition-all ${
                 selectedCat === cat.key ? 'border-blue-400 bg-blue-50' : 'border-gray-100 hover:border-blue-200'
               }`}>
-              <div className="text-4xl mb-3">{cat.icon}</div>
-              <p className="font-semibold text-gray-800">{cat.label}</p>
-              <p className="text-sm text-gray-400 mt-1">{categoryCounts[cat.key] ?? 0} รายการ</p>
+              <div className="text-3xl mb-2">{cat.icon}</div>
+              <p className="font-medium text-gray-800 text-xs">{cat.label}</p>
+              <p className="text-xs text-gray-400 mt-1">{categoryCounts[cat.key] ?? 0}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ประกาศ */}
       <section className="max-w-5xl mx-auto px-6 pb-16">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-2xl font-bold text-gray-800">
@@ -250,9 +251,7 @@ export default function Home() {
             <span className="text-base font-normal text-gray-400 ml-2">({filtered.length} รายการ)</span>
           </h3>
           {hasFilter && (
-            <button onClick={clearAll} className="text-sm text-blue-500 hover:underline">
-              ล้างตัวกรอง
-            </button>
+            <button onClick={clearAll} className="text-sm text-blue-500 hover:underline">ล้างตัวกรอง</button>
           )}
         </div>
 
@@ -279,10 +278,10 @@ export default function Home() {
                   <p className="text-xs text-blue-500 mb-1">{categoryLabel[item.category] || item.category}</p>
                   <h4 className="font-semibold text-gray-800">{item.title}</h4>
                   {item.location && <p className="text-sm text-gray-400 mt-1">📍 {item.location}</p>}
-                  <p className="text-blue-600 font-bold mt-2">
-                    ฿{item.price_per_day?.toLocaleString()}
-                    <span className="text-gray-400 font-normal text-sm"> / วัน</span>
-                  </p>
+                  {item.category === 'villa' && item.max_guests && (
+                    <p className="text-xs text-gray-400 mt-1">👥 รองรับ {item.max_guests} คน</p>
+                  )}
+                  {getPriceLabel(item)}
                 </div>
               </a>
             ))}
