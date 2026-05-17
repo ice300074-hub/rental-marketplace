@@ -21,10 +21,34 @@ const PRICE_RANGES = [
   { label: 'มากกว่า ฿15,000', min: 15000, max: Infinity },
 ]
 
+function SkeletonCard() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
+      <div className="bg-gray-200 h-52 w-full"/>
+      <div className="p-4 space-y-3">
+        <div className="bg-gray-200 h-4 rounded-lg w-3/4"/>
+        <div className="bg-gray-200 h-3 rounded-lg w-1/2"/>
+        <div className="bg-gray-200 h-5 rounded-lg w-1/3"/>
+      </div>
+    </div>
+  )
+}
+
+function SkeletonCategory() {
+  return (
+    <div className="rounded-2xl p-4 border-2 border-gray-100 bg-white animate-pulse">
+      <div className="bg-gray-200 rounded-full w-10 h-10 mx-auto mb-2"/>
+      <div className="bg-gray-200 h-3 rounded w-3/4 mx-auto mb-1"/>
+      <div className="bg-gray-200 h-3 rounded w-1/2 mx-auto"/>
+    </div>
+  )
+}
+
 export default function Home() {
   const [listings, setListings] = useState<any[]>([])
   const [filtered, setFiltered] = useState<any[]>([])
   const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedCat, setSelectedCat] = useState('')
   const [selectedProvince, setSelectedProvince] = useState('')
@@ -47,6 +71,7 @@ export default function Home() {
       const counts: Record<string, number> = {}
       all.forEach((l: any) => { counts[l.category] = (counts[l.category] || 0) + 1 })
       setCategoryCounts(counts)
+      setLoading(false)
     }
     fetchData()
   }, [])
@@ -175,13 +200,11 @@ export default function Home() {
       <section className="relative bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700 text-white overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/2"/>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-white opacity-5 rounded-full translate-y-1/2 -translate-x-1/2"/>
-
         <div className="relative max-w-5xl mx-auto px-6 py-20 text-center">
           <div className="inline-flex items-center gap-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-full px-4 py-2 text-sm mb-6">
             <span className="w-2 h-2 bg-green-400 rounded-full"></span>
             <span>มีประกาศใหม่วันนี้ {listings.length} รายการ</span>
           </div>
-
           <h2 className="text-5xl font-bold mb-4 leading-tight">
             เช่าทุกอย่าง<br/>
             <span className="text-blue-200">ในที่เดียว</span>
@@ -189,7 +212,6 @@ export default function Home() {
           <p className="text-xl mb-10 text-blue-100 font-light">
             บ้าน • พูลวิลล่า • ออฟฟิศ • รถ • อุปกรณ์ • เสื้อผ้า
           </p>
-
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-2xl p-2 flex gap-2 shadow-2xl">
               <input
@@ -276,29 +298,34 @@ export default function Home() {
 
       {/* ===== CATEGORIES ===== */}
       <section className="max-w-5xl mx-auto px-6 py-12">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h3 className="text-2xl font-bold text-gray-900">หมวดหมู่</h3>
-            <p className="text-gray-400 text-sm mt-1">เลือกประเภทที่คุณต้องการเช่า</p>
+        <div className="mb-6">
+          <h3 className="text-2xl font-bold text-gray-900">หมวดหมู่</h3>
+          <p className="text-gray-400 text-sm mt-1">เลือกประเภทที่คุณต้องการเช่า</p>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+            {[...Array(6)].map((_, i) => <SkeletonCategory key={i}/>)}
           </div>
-        </div>
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-          {categories.map((cat) => (
-            <div key={cat.key}
-              onClick={() => setSelectedCat(selectedCat === cat.key ? '' : cat.key)}
-              className={`rounded-2xl p-4 text-center cursor-pointer border-2 transition-all hover:scale-105 ${
-                selectedCat === cat.key
-                  ? 'border-blue-500 bg-blue-50 shadow-md'
-                  : `${cat.color} hover:border-blue-300 hover:shadow-sm`
-              }`}>
-              <div className="text-3xl mb-2">{cat.icon}</div>
-              <p className="font-semibold text-gray-800 text-xs leading-tight">{cat.label}</p>
-              <p className="text-xs text-gray-400 mt-1 font-medium">
-                {categoryCounts[cat.key] ?? 0} รายการ
-              </p>
-            </div>
-          ))}
-        </div>
+        ) : (
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+            {categories.map((cat) => (
+              <div key={cat.key}
+                onClick={() => setSelectedCat(selectedCat === cat.key ? '' : cat.key)}
+                className={`rounded-2xl p-4 text-center cursor-pointer border-2 transition-all hover:scale-105 ${
+                  selectedCat === cat.key
+                    ? 'border-blue-500 bg-blue-50 shadow-md'
+                    : `${cat.color} hover:border-blue-300 hover:shadow-sm`
+                }`}>
+                <div className="text-3xl mb-2">{cat.icon}</div>
+                <p className="font-semibold text-gray-800 text-xs leading-tight">{cat.label}</p>
+                <p className="text-xs text-gray-400 mt-1 font-medium">
+                  {categoryCounts[cat.key] ?? 0} รายการ
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ===== LISTINGS ===== */}
@@ -309,16 +336,23 @@ export default function Home() {
               {selectedCat ? categories.find(c => c.key === selectedCat)?.label : 'ประกาศล่าสุด'}
               {selectedProvince && <span className="text-blue-500 ml-2 text-lg font-normal">📍 {selectedProvince}</span>}
             </h3>
-            <p className="text-gray-400 text-sm mt-1">พบ {filtered.length} รายการ</p>
+            {!loading && (
+              <p className="text-gray-400 text-sm mt-1">พบ {filtered.length} รายการ</p>
+            )}
           </div>
-          {hasFilter && (
+          {hasFilter && !loading && (
             <button onClick={clearAll} className="text-sm text-blue-500 hover:text-blue-700 font-medium border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
               ล้างตัวกรอง
             </button>
           )}
         </div>
 
-        {filtered.length === 0 ? (
+        {/* Skeleton */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => <SkeletonCard key={i}/>)}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
             <p className="text-6xl mb-4">🔍</p>
             <p className="text-gray-500 text-lg font-medium">ไม่พบประกาศที่ค้นหา</p>
