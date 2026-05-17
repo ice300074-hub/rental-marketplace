@@ -27,7 +27,11 @@ export default function BookingPage({ params }: { params: { id: string } }) {
         .single()
       setListing(data)
 
-      // ดึงวันที่จองที่มีอยู่แล้ว
+      // บันทึก view
+      if (data) {
+        await supabase.from('listing_views').insert([{ listing_id: params.id }])
+      }
+
       const { data: bookings } = await supabase
         .from('bookings')
         .select('start_date, end_date')
@@ -66,6 +70,25 @@ export default function BookingPage({ params }: { params: { id: string } }) {
     })
   }
 
+  const sendBookingEmail = async (bookingId: string) => {
+    try {
+      await fetch('/api/send-booking-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId,
+          listingTitle: listing.title,
+          startDate,
+          endDate,
+          totalPrice,
+          renterEmail: user.email,
+        })
+      })
+    } catch (e) {
+      console.log('Email send failed (non-critical):', e)
+    }
+  }
+
   const handleBooking = async () => {
     if (!startDate || !endDate) {
       setMessage('❌ กรุณาเลือกวันที่เช่าและวันที่คืน')
@@ -75,15 +98,28 @@ export default function BookingPage({ params }: { params: { id: string } }) {
       setMessage('❌ วันที่คืนต้องมากกว่าวันที่เช่า')
       return
     }
-
-    // เช็ควันที่ซ้ำ
     if (isDateOverlap(startDate, endDate)) {
       setMessage('❌ ช่วงวันที่นี้มีการจองแล้ว กรุณาเลือกวันอื่น')
       return
     }
 
     setLoading(true)
-    setMessage('')
+    setMessage('⏳ กำลังตรวจสอบและจอง...')
+
+    // Booking lock — เช็คซ้ำก่อน insert
+    const { data: recheck } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('listing_id', params.id)
+      .in('status', ['pending', 'confirmed'])
+      .gte('end_date', startDate)
+      .lte('start_date', endDate)
+
+    if (recheck && recheck.length > 0) {
+      setMessage('❌ ช่วงวันที่นี้เพิ่งถูกจองไป กรุณาเลือกวันอื่น')
+      setLoading(false)
+      return
+    }
 
     const { data: bookingData, error } = await supabase.from('bookings').insert([{
       listing_id: params.id,
@@ -97,6 +133,8 @@ export default function BookingPage({ params }: { params: { id: string } }) {
     if (error) {
       setMessage('❌ ' + error.message)
     } else {
+      // ส่ง email แจ้งเตือน (non-blocking)
+      sendBookingEmail(bookingData[0].id)
       setMessage('✅ จองสำเร็จ! กำลังไปหน้าชำระเงิน...')
       setTimeout(() => window.location.href = `/payment/${bookingData[0].id}`, 1500)
     }
@@ -196,7 +234,7 @@ export default function BookingPage({ params }: { params: { id: string } }) {
             onClick={handleBooking}
             disabled={loading || totalDays <= 0}
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-all">
-            {loading ? 'กำลังจอง...' : `ยืนยันการจอง${totalDays > 0 ? ` ฿${totalPrice.toLocaleString()}` : ''}`}
+            {loading ? 'กำลังดำเนินการ...' : `ยืนยันการจอง${totalDays > 0 ? ` ฿${totalPrice.toLocaleString()}` : ''}`}
           </button>
 
           <a href={`/listings/${params.id}`} className="block text-center text-sm text-gray-400 hover:text-blue-500">

@@ -10,6 +10,10 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
   const [reviews, setReviews] = useState<any[]>([])
   const [avgRating, setAvgRating] = useState(0)
   const [currentImage, setCurrentImage] = useState(0)
+  const [comments, setComments] = useState<any[]>([])
+  const [newComment, setNewComment] = useState('')
+  const [commentLoading, setCommentLoading] = useState(false)
+  const [viewCount, setViewCount] = useState(0)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -23,6 +27,13 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
         .single()
       setListing(data)
 
+      // นับ views
+      const { count } = await supabase
+        .from('listing_views')
+        .select('*', { count: 'exact', head: true })
+        .eq('listing_id', params.id)
+      setViewCount(count || 0)
+
       const { data: reviewData } = await supabase
         .from('reviews')
         .select('*')
@@ -35,10 +46,45 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
         setAvgRating(Math.round(avg * 10) / 10)
       }
 
+      // ดึง comments
+      const { data: commentData } = await supabase
+        .from('comments')
+        .select('*, profiles(full_name)')
+        .eq('listing_id', params.id)
+        .order('created_at', { ascending: true })
+      setComments(commentData || [])
+
       setLoading(false)
     }
     fetchData()
+
+    // Realtime comments
+    const channel = supabase
+      .channel('comments')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'comments',
+        filter: `listing_id=eq.${params.id}`,
+      }, (payload) => {
+        setComments((prev) => [...prev, payload.new])
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [params.id])
+
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !user) return
+    setCommentLoading(true)
+    await supabase.from('comments').insert([{
+      listing_id: params.id,
+      user_id: user.id,
+      content: newComment.trim(),
+    }])
+    setNewComment('')
+    setCommentLoading(false)
+  }
 
   const categoryLabel: Record<string, string> = {
     house: '🏠 บ้าน / คอนโด / ห้อง',
@@ -151,18 +197,19 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
               <p className="text-gray-400 text-sm mb-3">📍 {listing.location}</p>
             )}
 
-            {reviews.length > 0 && (
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-yellow-400">⭐</span>
-                <span className="font-semibold text-gray-800">{avgRating}</span>
-                <span className="text-gray-400 text-sm">({reviews.length} รีวิว)</span>
-              </div>
-            )}
+            <div className="flex items-center gap-3 mb-3">
+              {reviews.length > 0 && (
+                <div className="flex items-center gap-1">
+                  <span className="text-yellow-400">⭐</span>
+                  <span className="font-semibold text-gray-800">{avgRating}</span>
+                  <span className="text-gray-400 text-sm">({reviews.length} รีวิว)</span>
+                </div>
+              )}
+              <span className="text-gray-400 text-sm">👁 {viewCount} ครั้ง</span>
+            </div>
 
-            {/* ราคา */}
             {getPriceDisplay()}
 
-            {/* ข้อมูลพิเศษ villa */}
             {listing.category === 'villa' && (listing.max_guests || listing.min_stay_days) && (
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {listing.max_guests && (
@@ -215,6 +262,70 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
                   </a>
                 )}
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* Comments Section */}
+        <div className="mt-12">
+          <h3 className="text-xl font-bold text-gray-800 mb-6">
+            💬 ความคิดเห็น ({comments.length})
+          </h3>
+
+          {user ? (
+            <div className="flex gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold flex-shrink-0">
+                {user.email?.[0]?.toUpperCase()}
+              </div>
+              <div className="flex-1 flex gap-2">
+                <input
+                  type="text"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                  placeholder="แสดงความคิดเห็น..."
+                  className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 text-gray-800 bg-white"
+                />
+                <button
+                  onClick={handleAddComment}
+                  disabled={commentLoading || !newComment.trim()}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-blue-700 disabled:opacity-50">
+                  ส่ง
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gray-50 rounded-xl p-4 mb-6 text-center">
+              <p className="text-gray-500 text-sm">
+                <a href="/auth" className="text-blue-500 hover:underline">เข้าสู่ระบบ</a> เพื่อแสดงความคิดเห็น
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {comments.length === 0 ? (
+              <p className="text-gray-400 text-center py-8">ยังไม่มีความคิดเห็น เป็นคนแรกที่แสดงความคิดเห็น!</p>
+            ) : (
+              comments.map((comment: any) => (
+                <div key={comment.id} className="flex gap-3">
+                  <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm font-medium flex-shrink-0">
+                    {comment.profiles?.full_name?.[0] || '?'}
+                  </div>
+                  <div className="flex-1">
+                    <div className="bg-white border border-gray-100 rounded-xl px-4 py-3">
+                      <p className="text-xs font-medium text-gray-700 mb-1">
+                        {comment.profiles?.full_name || 'ผู้ใช้งาน'}
+                      </p>
+                      <p className="text-sm text-gray-700">{comment.content}</p>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1 ml-2">
+                      {new Date(comment.created_at).toLocaleDateString('th-TH', {
+                        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
