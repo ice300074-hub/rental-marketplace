@@ -30,7 +30,7 @@ export function Toast({ message, type, onClose }: ToastProps) {
   }
 
   return (
-    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-all animate-bounce-in ${styles[type]}`}>
+    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-medium ${styles[type]}`}>
       <span>{icons[type]}</span>
       <span>{message}</span>
       {type !== 'loading' && (
