@@ -13,6 +13,11 @@ export default function AuthPage() {
   const [role, setRole] = useState<Role>('both')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showForgot, setShowForgot] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotMessage, setForgotMessage] = useState('')
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -34,15 +39,10 @@ export default function AuthPage() {
       if (error) {
         setMessage('❌ ' + error.message)
       } else {
-        // บันทึก role ใน profiles
         if (data.user) {
-          await supabase.from('profiles').upsert({
-            id: data.user.id,
-            role: role,
-          })
+          await supabase.from('profiles').upsert({ id: data.user.id, role })
         }
         setMessage('✅ สมัครสำเร็จ! กรุณาตรวจสอบ Email เพื่อยืนยัน')
-        // Redirect ไปหน้า login หลังสมัครเสร็จ
         setTimeout(() => {
           setIsLogin(true)
           setMessage('✅ สมัครสำเร็จแล้ว! เข้าสู่ระบบได้เลยครับ')
@@ -50,6 +50,23 @@ export default function AuthPage() {
       }
     }
     setLoading(false)
+  }
+
+  // กด Enter submit ได้
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !loading) handleSubmit()
+  }
+
+  const handleForgotPassword = async () => {
+    if (!forgotEmail) { setForgotMessage('❌ กรุณากรอก Email'); return }
+    setForgotLoading(true)
+    setForgotMessage('')
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: 'https://rental-marketplace-red.vercel.app/auth',
+    })
+    if (error) setForgotMessage('❌ ' + error.message)
+    else setForgotMessage('✅ ส่ง Email รีเซ็ตรหัสผ่านแล้ว! กรุณาตรวจสอบ Email')
+    setForgotLoading(false)
   }
 
   const handleGoogleLogin = async () => {
@@ -67,6 +84,50 @@ export default function AuthPage() {
     { value: 'owner', label: '🏠 ผู้ปล่อยเช่า', desc: 'ฉันต้องการลงประกาศ' },
     { value: 'both', label: '✨ ทั้งสองอย่าง', desc: 'เช่าและปล่อยเช่า' },
   ]
+
+  // หน้า Forgot Password
+  if (showForgot) {
+    return (
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 w-full max-w-md p-8">
+          <h1 className="text-2xl font-bold text-blue-600 text-center mb-2">RentHub</h1>
+          <p className="text-gray-400 text-center mb-8">รีเซ็ตรหัสผ่าน</p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm text-gray-600 mb-1 block">อีเมลที่ใช้สมัคร</label>
+              <input
+                type="email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleForgotPassword()}
+                placeholder="example@email.com"
+                className={inputClass}
+                autoFocus
+              />
+            </div>
+
+            {forgotMessage && (
+              <p className="text-sm text-center py-2 px-4 bg-gray-50 rounded-lg text-gray-700">{forgotMessage}</p>
+            )}
+
+            <button
+              onClick={handleForgotPassword}
+              disabled={forgotLoading}
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-all">
+              {forgotLoading ? 'กำลังส่ง...' : 'ส่ง Email รีเซ็ตรหัสผ่าน'}
+            </button>
+
+            <button
+              onClick={() => { setShowForgot(false); setForgotMessage('') }}
+              className="w-full text-center text-sm text-gray-400 hover:text-blue-500 py-2">
+              ← กลับหน้า Login
+            </button>
+          </div>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -99,12 +160,12 @@ export default function AuthPage() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   placeholder="กรอกชื่อ-นามสกุล"
                   className={inputClass}
                 />
               </div>
 
-              {/* เลือก Role */}
               <div>
                 <label className="text-sm text-gray-600 mb-2 block">คุณต้องการใช้งานในฐานะ?</label>
                 <div className="grid grid-cols-3 gap-2">
@@ -134,21 +195,43 @@ export default function AuthPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="example@email.com"
               className={inputClass}
             />
           </div>
 
+          {/* รหัสผ่าน + ปุ่มแสดง/ซ่อน */}
           <div>
             <label className="text-sm text-gray-600 mb-1 block">รหัสผ่าน</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="อย่างน้อย 6 ตัวอักษร"
-              className={inputClass}
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="อย่างน้อย 6 ตัวอักษร"
+                className={inputClass + ' pr-12'}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg">
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
           </div>
+
+          {/* ลืมรหัสผ่าน */}
+          {isLogin && (
+            <div className="text-right">
+              <button
+                onClick={() => { setShowForgot(true); setForgotEmail(email) }}
+                className="text-sm text-blue-500 hover:text-blue-700 hover:underline">
+                ลืมรหัสผ่าน?
+              </button>
+            </div>
+          )}
 
           {message && (
             <p className="text-sm text-center py-2 px-4 bg-gray-50 rounded-lg text-gray-700">{message}</p>
