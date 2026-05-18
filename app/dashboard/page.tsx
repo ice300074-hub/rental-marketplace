@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Toast, useToast } from '@/components/Toast'
+import { Toast, useToast } from '../components/Toast'
 
 function SkeletonRow() {
   return (
